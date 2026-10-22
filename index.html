@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CodeLens-AI Code Explainer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .min-h-screen { min-height: 100vh; padding-bottom: 80px; position: relative; }
+        .footer {
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            color: white;
+            padding: 10px 20px;
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+            font-family: Arial, sans-serif;
+            border-radius: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            width: auto;
+            white-space: nowrap;
+        }
+        
+        /* Code font for the input box and code blocks in the answer */
+        .code-font { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+
+        /* Styles for the explanation text */
+        #explanation h1, #explanation h2, #explanation h3 { color: #fff; font-weight: 600; margin: 1.25rem 0 0.5rem; }
+        #explanation h1 { font-size: 1.4rem; }
+        #explanation h2 { font-size: 1.2rem; }
+        #explanation h3 { font-size: 1.05rem; }
+        #explanation p { color: rgba(255,255,255,0.75); line-height: 1.7; margin: 0.6rem 0; max-width: 70ch; }
+        #explanation ul, #explanation ol { color: rgba(255,255,255,0.75); margin: 0.6rem 0 0.6rem 1.25rem; line-height: 1.7; }
+        #explanation ul { list-style: disc; }
+        #explanation ol { list-style: decimal; }
+        #explanation strong { color: #fff; font-weight: 600; }
+        #explanation code.inline {
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 6px;
+            padding: 1px 6px;
+            font-size: 0.9em;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            color: #fff;
+        }
+        #explanation pre {
+            background: rgba(0,0,0,0.5);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 14px 16px;
+            overflow-x: auto;
+            margin: 0.8rem 0;
+            font-size: 0.85rem;
+            line-height: 1.6;
+            color: rgba(255,255,255,0.9);
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        }
+    </style>
+</head>
+<body class="bg-black text-white font-sans">
+    <div class="min-h-screen flex flex-col">
+        <!-- Navigation -->
+        <nav class="p-6 flex justify-between items-center border-b border-white/10 backdrop-blur-sm bg-black/30 fixed w-full z-50">
+            <div class="flex items-center"> 
+                <span class="ml-3 text-lg font-medium text-white/80 group-hover:text-white">CodeLens AI</span>
+            </div>
+            </nav>
+
+        <!-- Main Content -->
+        <main class="flex-grow container mx-auto px-4 pt-28 pb-16">
+            <div class="max-w-4xl mx-auto">
+                <div class="text-center mb-12">
+                    <div class="inline-block mb-4 px-4 py-1 rounded-full bg-white/5 border border-white/10">
+                        <span class="text-sm font-medium text-white/60">AI Code Explainer</span>
+                    </div>
+                    <h1 class="text-5xl font-bold mb-7 bg-gradient-to-r from-white to-white/60 text-transparent bg-clip-text">Any code, Made understandable.</h1>
+                    <p class="text-2xl font-bold mt-2 text-white/60">Paste a snippet & get a plain-English explanation</p>
+                </div>
+
+                <div class="space-y-8">
+                    <!-- Input -->
+                    <div>
+                        <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
+                            <label for="codeInput" class="text-sm text-white/60">Your code</label>
+                            <div class="flex items-center gap-3">
+                                <select id="levelSelect" class="bg-black/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white/60 hover:text-white hover:bg-white/5 border border-white/10 transition-all">
+                                    <option value="beginner" class="bg-black">Beginner-friendly</option>
+                                    <option value="intermediate" class="bg-black">Intermediate</option>
+                                    <option value="line" class="bg-black">Line by line</option>
+                                </select>
+                                <button id="sampleBtn" class="px-3 py-2 rounded-lg text-sm text-white/60 hover:text-white hover:bg-white/5 border border-white/10 transition-all">
+                                    Try a sample
+                                </button>
+                            </div>
+                        </div>
+                        <div class="relative">
+                            <textarea
+                                id="codeInput"
+                                class="code-font w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 pb-16 text-sm text-white placeholder-white/30 focus:outline-none focus:border-white/20 focus:ring-1 focus:ring-white/20 transition-all"
+                                placeholder="Paste your code here (any language)..."
+                                rows="12"
+                                spellcheck="false"
+                            ></textarea>
+                            <div class="absolute right-3 bottom-3 flex items-center gap-3">
+                                <span id="charCount" class="text-xs text-white/30">0 / 8000</span>
+                                <button id="clearBtn" class="px-3 py-2 rounded-lg text-sm text-white/40 hover:text-white hover:bg-white/5 transition-all">Clear</button>
+                                <button id="explainBtn" class="px-6 py-2 bg-white text-black rounded-lg font-medium hover:bg-white/90 transition-all transform hover:scale-105 disabled:opacity-50 disabled:hover:scale-100">
+                                    Explain
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Output -->
+                    <div id="outputSection" class="space-y-4" style="display: none;">
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm text-white/60">Explanation</span>
+                            <button id="copyBtn"
+                                class="px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white/60 hover:bg-white/10 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                disabled>Copy</button>
+                        </div>
+                        <div class="relative rounded-xl bg-white/5 border border-white/10 p-6 min-h-[120px]">
+                            <div id="status" class="flex items-center gap-3 text-white/70" style="display: none;">
+                                <div class="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white"></div>
+                                <span id="statusText">Reading your code...</span>
+                            </div>
+                            <div id="explanation"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <div class="footer">
+         Developed by Yesh
+        </div>
+    </div>
+    <script src="just_explain.js"></script>
+</body>
+</html>
